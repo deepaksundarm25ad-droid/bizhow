@@ -10,6 +10,62 @@ const SUGGESTIONS = [
   "What is the current status of my approvals?",
 ];
 
+function parseInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return (
+        <strong key={i} className="font-semibold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2 && !part.startsWith("**")) {
+      return <em key={i} className="italic">{part.slice(1, -1)}</em>;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      return <code key={i} className="px-1 py-0.5 bg-slate-200 text-slate-900 rounded text-xs font-mono">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+}
+
+function FormattedMessage({ text, isUser }: { text: string; isUser: boolean }) {
+  if (isUser) {
+    return <span className="whitespace-pre-wrap">{text}</span>;
+  }
+
+  const lines = text.split("\n");
+  return (
+    <div className="space-y-1">
+      {lines.map((line, idx) => {
+        if (!line.trim()) return <div key={idx} className="h-1" />;
+
+        if (line.startsWith("### ")) {
+          return (
+            <p key={idx} className="font-bold text-slate-900 text-sm mt-1.5 mb-0.5 font-inter">
+              {parseInlineMarkdown(line.slice(4))}
+            </p>
+          );
+        }
+        if (line.startsWith("## ")) {
+          return (
+            <p key={idx} className="font-bold text-slate-900 text-sm mt-1.5 mb-0.5 font-inter">
+              {parseInlineMarkdown(line.slice(3))}
+            </p>
+          );
+        }
+
+        return (
+          <p key={idx} className="leading-relaxed">
+            {parseInlineMarkdown(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AIChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -93,16 +149,17 @@ export default function AIChat() {
                   <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-xs text-[#800020] mr-2 mt-0.5 shrink-0 font-bold">✦</div>
                 )}
                 <div
-                  className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap font-open-sans ${
+                  className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed font-open-sans ${
                     m.role === "user"
                       ? "bg-[#800020] text-white rounded-br-xs shadow-xs"
                       : "bg-slate-50 text-slate-800 border border-slate-200/80 rounded-bl-xs"
                   }`}
                 >
-                  {m.text}
+                  <FormattedMessage text={m.text} isUser={m.role === "user"} />
                 </div>
               </div>
             ))}
+
             {loading && (
               <div className="flex justify-start animate-fade-in">
                 <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-xs text-[#800020] mr-2 mt-0.5 shrink-0 font-bold">✦</div>
